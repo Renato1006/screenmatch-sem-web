@@ -1,9 +1,6 @@
 package br.com.renato.screenmatch.principal;
 
-import br.com.renato.screenmatch.model.DadosEpisodio;
-import br.com.renato.screenmatch.model.DadosSerie;
-import br.com.renato.screenmatch.model.DadosTemporada;
-import br.com.renato.screenmatch.model.Episodio;
+import br.com.renato.screenmatch.model.*;
 import br.com.renato.screenmatch.service.ConsumoAPI;
 import br.com.renato.screenmatch.service.ConverteDados;
 
@@ -21,7 +18,84 @@ public class Principal {
     private final String SEASON = "&season=";
     private final String API_KEY = "&apikey=7c41444";
 
+    private List<DadosSerie> dadosSerieList = new ArrayList<>();
+
     public void exibeMenu(){
+        var op = -1;
+        while (op!=0) {
+            var mensagem = """
+                    1 - Buscar séries
+                    2 - Buscar episódios
+                    3 - Listar séries
+                                    
+                    0 - Sair                                 
+                    """;
+
+            System.out.println(mensagem);
+            op = sc.nextInt();
+            sc.nextLine();
+
+            switch (op) {
+                case 1:
+                    buscarSerieWeb();
+                    break;
+                case 2:
+                    buscarEpisodioPorSerie();
+                    break;
+                case 3:
+                    listarSeriesBuscadas();
+                case 0:
+                    System.out.println("Saindo...");
+                    break;
+                default:
+                    System.out.println("Opção inválida");
+            }
+        }
+    }
+
+    private void listarSeriesBuscadas() {
+        List<Serie> serieList = new ArrayList<>();
+        serieList = dadosSerieList.stream()
+                        .map(d -> new Serie(d))
+                                .collect(Collectors.toList());
+
+        serieList.stream()
+                .sorted(Comparator.comparing(Serie::getGenero))
+                .forEach(System.out::println);
+    }
+
+    private void buscarSerieWeb() {
+        DadosSerie dados = getDadosSerie();
+        dadosSerieList.add(dados);
+        System.out.println(dados);
+    }
+
+    private DadosSerie getDadosSerie() {
+        System.out.println("Digite o nome da série para busca");
+        var nomeSerie = sc.nextLine();
+        var json = consumo.obterDados(ENDERECO + nomeSerie.replace(" ", "+") + API_KEY);
+        DadosSerie dados = conversor.obterDados(json, DadosSerie.class);
+        return dados;
+    }
+
+    private void buscarEpisodioPorSerie(){
+        DadosSerie dadosSerie = getDadosSerie();
+        List<DadosTemporada> temporadas = new ArrayList<>();
+
+        for (int i = 1; i <= dadosSerie.totalTemporadas(); i++) {
+            var json = consumo.obterDados(ENDERECO + dadosSerie.titulo().replace(" ", "+") + "&season=" + i + API_KEY);
+            DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
+            temporadas.add(dadosTemporada);
+        }
+        temporadas.forEach(System.out::println);
+    }
+
+
+
+}
+
+/* menu antigo
+public void exibeMenu(){
         System.out.println("Digite o nome da série: ");
         String name = sc.nextLine();
 
@@ -103,4 +177,5 @@ public class Principal {
         System.out.println("Menor nota de um episódio: " + est.getMin());
         System.out.println("Quantidade de avaliações: " + est.getCount());
     }
-}
+
+ */
